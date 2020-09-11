@@ -2,42 +2,6 @@
 const r = require('restructure');
 const getStream = require('get-stream');
 
-var Person = new r.Struct({
-  name: new r.String(r.uint8, 'utf8'),
-  age: r.uint8,
-  sex: new r.String(r.uint8, 'utf8'),
-});
-
-(async () => {
-  try {
-    var stream = new r.EncodeStream();
-
-    Person.encode(stream, {
-      name: 'Devon',
-      age: 21,
-      sex: 'male'
-    });
-
-    stream.end();
-
-    const b = Buffer.from(await getStream(stream, {encoding: 'binary'}));
-    console.log('buf1', b);
-
-    const buffer = Buffer.from(b);
-    console.log('buf2', buffer);
-
-    var stream2 = new r.DecodeStream(buffer);
-    const n = Person.decode(stream2);
-
-    console.log(n);
-  } catch (e) {
-    console.log(e);
-  }  
-})();
-
-
-/*
-
 class Message {
 }
 
@@ -57,13 +21,26 @@ class FluidDataItem {
 }
 
 class Command extends Message {
-  static encode(code, ident, length, data) {
-    const c = C.Struct('IdentityCommand')
-      .field('code', C.U8(code))
-      .field('ident', C.U16LE(ident))
-      .field('length', C.U16LE(length))
-      .field('data', C.RawString(data))
-    return c.toBuffer();
+
+  static CommandStructure = new r.Struct({
+    code: r.uint8,
+    ident: r.uint16,
+    length: r.uint16,
+    data: new r.Array(r.uint8, 'length'),
+  });
+  
+  static async encode(code, ident, length, data) {
+    var stream = new r.EncodeStream();
+
+    this.CommandStructure.encode(stream, {
+      code,
+      ident,
+      length,
+      data,
+    });
+    stream.end();
+
+    return Buffer.from(await getStream(stream, {encoding: 'binary'}));
   }
 
   static decode(data) {
@@ -72,17 +49,16 @@ class Command extends Message {
 
 class IdentityCommand extends Command {
   static CODE = 1;
-  static encode(ident, data) {    
-    return super.encode(this.CODE, ident, data.length, data);
+  static COMMAND_NAME = 'identity command';
+  static async encode(ident, data) {
+    return await super.encode(this.CODE, ident, data.length, data);
   }
 
-  decode()
-   {}
+  decode() {}
 }
 
 
-const command = IdentityCommand.encode('1', '121212')
-console.log('command', command);
-
-
-*/
+(async () => {
+  const command = await IdentityCommand.encode('1', '121212');
+  console.log('command', command);
+})();

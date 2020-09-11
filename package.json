@@ -6,6 +6,7 @@
   "dependencies": {
     "get-stream": "^6.0.0",
     "highland": "^2.13.5",
+    "iconv-lite": "^0.6.2",
     "restructure": "^2.0.0"
   },
   "devDependencies": {},
